@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   telestion:
-    image: "ghcr.io/##REPO_USER##/##REPO_NAME##:##TAG##"
+    image: "ghcr.io/jantischhoefer/ba-telestion-innocube:##TAG##"
     restart: unless-stopped
     ports:
       # passthroughs TCP EventBus Bridge to allow connections from clients on host
@@ -11,7 +11,7 @@ services:
       # pass configuration to container
       - type: bind
         source: "./conf"
-        target: "/usr/telestion/##REPO_NAME##/conf"
+        target: "/usr/telestion/ba-telestion-innocube/conf"
 
 # rename default docker network
 networks:

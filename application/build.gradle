@@ -4,7 +4,7 @@ plugins {
     id 'application'
 }
 
-group '##GROUP_ID##'
+group 'de.jantis.telestion.project.innocube'
 
 sourceCompatibility = gradle.sourceCompatibility
 targetCompatibility = gradle.targetCompatibility

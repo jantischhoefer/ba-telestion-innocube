@@ -1,76 +1,102 @@
-# Telestion Project Template
+# ba-telestion-innocube
 
-This is a template for Telestion projects.
-It provides the boilerplate code so can instantly start to develop your groundstation.
+[![Running Telestion](https://img.shields.io/static/v1?label=Running&message=Telestion&labelColor=2B2E3A&color=452897)](https://telestion.wuespace.de/)
+[![CI Application](https://github.com/jantischhoefer/ba-telestion-innocube/actions/workflows/ci-app.yml/badge.svg)](https://github.com/jantischhoefer/ba-telestion-innocube/actions/workflows/ci-app.yml)
 
-## Setup
+This is a Telestion Project based on the [Telestion Project Template](https://github.com/wuespace/telestion-project-template).
 
-For a more in-depth guide on how to start a new project, take a look on our [developer documentation](https://docs.telestion.wuespace.de/application/tutorials/starting-a-new-project/).
+## Installation
+
+### The Application
+
+To run the application on your production system, you need [docker](https://www.docker.com/) and [docker-compose](https://docs.docker.com/compose/install/) installed and ready-to-go.
+
+Go to the [latest release](https://github.com/jantischhoefer/ba-telestion-innocube/releases/latest) of the project and download the application archive named `ba-telestion-innocube-vX.X.X.zip`.
+
+Extract it on your production system and go into the folder which contains the `docker-compose.yml`.
+
+Start the application with the following command:
+
+```shell
+docker-compose up -d
+```
+
+This downloads and starts the required components to run Telestion.
+
+If you want to stop Telestion, call:
+
+```shell
+docker-compose down
+```
+
+### The Client
+
+Client builds are also available via the [latest release](https://github.com/jantischhoefer/ba-telestion-innocube/releases/latest) of the project.
+
+OS coverage depends on the used Client system.
+
+## Building
+
+To build the projects from source, please take a look into the part specific descriptions:
+
+- [Application](./application/README.md)
+- [Client](./client/README.md)
+
+## Releasing
+
+When you use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) during development, automation tools can release a new version based on [Semantic Versioning] and automatically create changelogs based on the commit messages.
+
+For more information, take a look at the release tutorial on our developer documentation.
 
 ### Via GitHub
 
-First, press the `Use this template` button.
-
-![github-use-this-template](https://user-images.githubusercontent.com/52416718/155911275-4b230feb-4fde-4ba3-a302-d552f0e7b9b3.png)
-
-Now, GitHub asks you some required information. Select a suitable user/group and give the repository a meaningful name.
-
-Next, select your repository's visibility. When you're happy with your information, press the Create repository from template button.
-
-![github-create-repo](https://user-images.githubusercontent.com/52416718/155911289-92e4cebe-65db-48b5-be31-0b09a098265d.png)
-
-Now, go to the _Actions_ Tab in the GitHub UI and choose the `Initialize` Action.
-Then click `Run workflow` and enter your preferences like so:
-
-![Screenshot_20210427_091359](https://user-images.githubusercontent.com/52416718/116217289-01329a00-a739-11eb-811a-08bee30de8b7.png)
-
-> It is recommended to follow [Maven Central `groupId` naming conventions](https://maven.apache.org/guides/mini/guide-naming-conventions.html),
-> e.g. beginning with the company url in reverse.
-
-Let GitHub Actions initialize your project.
+The `release` action creates and updates a pull request that tracks the changes to the next release. Once you're happy with your result, merge this branch. This triggers the release pipeline which creates a new release archive and publishes the code to the GitHub Container Registry.
 
 ### Manually
 
-1. Create a new and empty git repository:
+If you're not hosting your code on GitHub, we provide some convenience scripts to release a new version.
 
-   ```shell
-   mkdir my-telestion-project
-   cd my-telestion-project
-   git init
-   ```
+First, bump your project version.
 
-2. Fetch the changes from this template:
+Update the project version in the version.txt file which resides in the project root.
 
-   ```shell
-   git fetch --depth=1 -n "https://github.com/wuespace/telestion-project-template.git"
-   ```
+Next, open the console and commit the version bump:
 
-3. Create an orphaned commit to start from there:
+```shell
+git add version.txt
+git commit -m "chore(main): release $(<version.txt)"
+git tag -a "v$(<version.txt)" -m "release $(<version.txt)"
+git push --follow-tags
+```
 
-   ```shell
-   git reset --hard "$(git commit-tree FETCH_HEAD^{tree} -m "feat: Initial commit")"
-   ```
+> Attention: The deployment scripts and tools require that you use the Semantic Versioning release style in your project.
 
-4. Run the initialize script:
+Now, build the Application.
 
-   ```shell
-   ./scripts/initialize.sh
-   ```
+Open your IDE and select the assembleDist task in the distribution section of Gradle.
+Or run the Gradle task in your console:
 
-5. Commit your changes as suggested by the script:
+```shell
+cd application
+JAVA_HOME="<path-to-jdk16>" ./gradlew assembleDist
+cd ..
+```cd application
+JAVA_HOME="<path-to-jdk16>" ./gradlew assembleDist
+cd ..
 
-   ```shell
-   git add .
-   git commit -m "feat: Initialize project"
-   ```
+To build, tag and publish the docker containers, call the following script:
 
-6. (Optional) Add a remote repository where you can push your project:
+```shell
+./scripts/push-docker-images.sh
+```
 
-   ```shell
-   git remote add origin "git@gitlab.com:your-name/my-telestion-project.git"
-   git branch -M main
-   git push -u origin main
-   ```
+To create a setup archive, call the following script:
+
+```shell
+./scripts/create-setup.sh
+```
+
+Both scripts depend on the version number in the `version.txt` file.
 
 ## This repository
 
@@ -103,16 +129,8 @@ The overall file structure of this monorepo looks like this:
 
 ### Contributing
 
-For the documentation on contributing to this repository, please take a look at the [Contributing Guidelines](./CONTRIBUTING.md).
-
-## Contributors
-
-Thank you to all contributors of this repository:
-
-[![Contributors](https://contrib.rocks/image?repo=wuespace/telestion-project-daedalus2)](https://github.com/wuespace/telestion-project-daedalus2/graphs/contributors)
-
-Made with [contributors-img](https://contrib.rocks).
+For the documentation on contributing to this repository, please take look at the [Contributing Guidelines](./CONTRIBUTING.md) and the official [Telestion Developer Documentation](https://docs.telestion.wuespace.de/).
 
 ## About
 
-Belongs to [Telestion](https://telestion.wuespace.de/), a project by [WüSpace e.V.](https://www.wuespace.de/).
+Running [Telestion](https://telestion.wuespace.de/), a project by [WüSpace e.V.](https://www.wuespace.de/).
