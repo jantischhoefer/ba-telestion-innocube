@@ -1,0 +1,40 @@
+name: Initialize
+
+# Events that trigger this workflow
+on:
+  workflow_dispatch:
+    inputs:
+      group:
+        description: "Gradle Group Name"
+        required: true
+        default: "de.wuespace.telestion.project.template"
+
+jobs:
+  initialize:
+    name: Initialize the project
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.0.0
+
+      - name: Setup environment
+        run: |
+          echo "repo_name=$(echo "$GITHUB_REPOSITORY" | cut -d "/" -f 2 -)" >> $GITHUB_ENV
+          echo "repo_user=$(echo "$GITHUB_REPOSITORY" | cut -d "/" -f 1 -)" >> $GITHUB_ENV
+
+      - name: Run initialize script
+        run: |
+          ${GITHUB_WORKSPACE}/scripts/initialize.sh \
+              --gradle-group-name "$group_id" \
+              --repo-user-name "$repo_user" \
+              --repo-name "$repo_name"
+        env:
+          group_id: ${{ github.event.inputs.group }}
+
+      - name: Pushing changes to remote
+        run: |
+          git config --local user.name "${GITHUB_ACTOR}"
+          git config --local user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git add .
+          git commit -m "feat: Initialize project"
+          git push

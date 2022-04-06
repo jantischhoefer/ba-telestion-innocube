@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  telestion-devel:
+    image: "telestion-devel"
+    profiles: ["devel-docker"]
+    build:
+      context: "."
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      # passthroughs TCP EventBus Bridge to allow connections from clients on host
+      - "127.0.0.1:9870:9870"
+    volumes:
+      # pass configuration to container
+      - type: bind
+        source: "./conf"
+        target: "/usr/telestion/##REPO_NAME##/conf"
+
+  telestion:
+    image: "ghcr.io/##REPO_USER##/##REPO_NAME##:latest"
+    profiles: ["prod"]
+    restart: unless-stopped
+    ports:
+      # passthroughs TCP EventBus Bridge to allow connections from clients on host
+      - "127.0.0.1:9870:9870"
+    volumes:
+      # pass configuration to container
+      - type: bind
+        source: "./conf"
+        target: "/usr/telestion/##REPO_NAME##/conf"
+
+# rename default docker network
+networks:
+  default:
+    name: telestion-net

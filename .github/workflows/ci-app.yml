@@ -1,0 +1,68 @@
+# For most projects, this workflow file will not need changing; you simply need
+# to commit it to your repository.
+#
+# ******** NOTE ********
+# If you need access to the GitHub Maven package registry from other repositories,
+# create a personal access token with the following scopes:
+# - read:packages
+# and name it "READ_PACKAGES".
+# After this step, overwrite the default GITHUB_TOKEN environment variable with the created PAT
+# in the gradle build and test steps.
+name: CI application
+
+# Events that trigger this workflow
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./application
+    steps:
+      - name: Checkout 📥
+        uses: actions/checkout@v3.0.0
+
+      - name: Set up JDK 16 💿
+        uses: actions/setup-java@v3.0.0
+        with:
+          distribution: "zulu"
+          java-version: "16"
+          java-package: jdk
+          cache: "gradle"
+
+      - name: Build packages 🛠️
+        run: chmod +x gradlew && ./gradlew build
+        env:
+          GITHUB_TOKEN: ${{ secrets.READ_PACKAGES }}
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./application
+    steps:
+      - name: Checkout 📥
+        uses: actions/checkout@v3.0.0
+
+      - name: Set up JDK 16 💿
+        uses: actions/setup-java@v3.0.0
+        with:
+          distribution: "zulu"
+          java-version: "16"
+          java-package: jdk
+          cache: "gradle"
+
+      - name: Test packages 🛃
+        run: chmod +x gradlew && ./gradlew test
+        env:
+          GITHUB_TOKEN: ${{ secrets.READ_PACKAGES }}
+
+      - name: Upload Test Report 📠
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: scacap/action-surefire-report@v1.0.13
+        with:
+          report_paths: "**/build/test-results/test/TEST-*.xml"
+          github_token: ${{ secrets.GITHUB_TOKEN }}

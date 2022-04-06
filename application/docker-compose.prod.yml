@@ -1,0 +1,19 @@
+version: "3.7"
+
+services:
+  telestion:
+    image: "ghcr.io/##REPO_USER##/##REPO_NAME##:##TAG##"
+    restart: unless-stopped
+    ports:
+      # passthroughs TCP EventBus Bridge to allow connections from clients on host
+      - "0.0.0.0:9870:9870"
+    volumes:
+      # pass configuration to container
+      - type: bind
+        source: "./conf"
+        target: "/usr/telestion/##REPO_NAME##/conf"
+
+# rename default docker network
+networks:
+  default:
+    name: telestion-net

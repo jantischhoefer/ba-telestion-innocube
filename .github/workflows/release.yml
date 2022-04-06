@@ -1,0 +1,142 @@
+name: Release
+
+# Events that trigger this workflow
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    outputs:
+      repo-name: ${{ env.repo-name }}
+      release-created: ${{ steps.release.outputs.release_created }}
+      tag-name: ${{ steps.release.outputs.tag_name }}
+      major: ${{ steps.release.outputs.major }}
+      minor: ${{ steps.release.outputs.minor }}
+      patch: ${{ steps.release.outputs.patch }}
+    steps:
+      - name: Extract repository name
+        run: echo "repo-name=$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")" >> $GITHUB_ENV
+
+      - name: Run Release Please 🎉
+        id: release
+        uses: google-github-actions/release-please-action@v3.1.4
+        with:
+          # uncomment if you want to run workflows in the release PR
+          #token: ${{ secrets.ADMIN_REPO_TOKEN }}
+          release-type: simple
+          package-name: ${{ env.repo-name }}
+
+  publish-setup:
+    name: Publish Setup
+    runs-on: ubuntu-latest
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release-created }}
+    env:
+      tag: ${{ needs.release-please.outputs.tag-name }}
+      repo-name: ${{ needs.release-please.outputs.repo-name }}
+    steps:
+      - name: Checkout 📥
+        uses: actions/checkout@v3.0.0
+
+      - name: Run create-setup script
+        run:
+          ${GITHUB_WORKSPACE}/scripts/create-setup.sh --tmp-dir "${tmp_dir}" --tag "$tag"
+        env:
+          tmp_dir: ${{ runner.temp }}
+
+      - name: Upload release workspace 🪡
+        uses: svenstaro/upload-release-action@2.2.1
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ env.tag }}
+          file: ${{ github.workspace }}/build/${{ env.repo-name }}-${{ env.tag }}.zip
+
+  publish-docker-image:
+    name: Publish Docker Image
+    runs-on: ubuntu-latest
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release-created }}
+    env:
+      major: ${{ needs.release-please.outputs.major }}
+      minor: ${{ needs.release-please.outputs.minor }}
+      patch: ${{ needs.release-please.outputs.patch }}
+    defaults:
+      run:
+        working-directory: ./application
+    steps:
+      - name: Checkout 📥
+        uses: actions/checkout@v3.0.0
+        with:
+          submodules: true
+
+      - name: Set up JDK 16 💿
+        uses: actions/setup-java@v3.0.0
+        with:
+          distribution: "zulu"
+          java-version: "16"
+          java-package: jdk
+      - name: Set up Docker Buildx ⬆
+        uses: docker/setup-buildx-action@v1.6.0
+
+      - name: Cache Docker layers ♻️
+        uses: actions/cache@v3.0.0
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Install dependencies 📚
+        run: chmod +x gradlew && ./gradlew
+
+      - name: Build App 🛠️
+        run: ./gradlew assembleDist
+
+      # You may need to manage write and read access of GitHub Actions
+      # for this repository in the container settings.
+      #
+      # You can also use a personal access token (PAT) with the appropriate scopes.
+      #
+      # Please see:
+      # https://github.com/marketplace/actions/docker-login#github-container-registry
+      - name: Login to GitHub Container Registry 🛂
+        uses: docker/login-action@v1.14.1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push docker image 🗜
+        id: docker_build
+        uses: docker/build-push-action@v2.10.0
+        with:
+          context: "${{ github.workspace }}/application"
+          pull: true
+          push: true
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          # generate and move multiple tags based on semver
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ env.major }}.${{ env.minor }}.${{ env.patch }}
+            ghcr.io/${{ github.repository }}:${{ env.major }}.${{ env.minor }}
+            ghcr.io/${{ github.repository }}:${{ env.major }}
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+      # Temporary fix for growing caches
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      #
+      # Please see:
+      # https://github.com/docker/build-push-action/blob/master/docs/advanced/cache.md#github-cache
+      - name: Move cache ♻️
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
