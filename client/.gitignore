@@ -42,3 +42,5 @@ cypress/screenshots
 
 # eslint cache
 .eslintcache
+
+pnpm-lock.yaml

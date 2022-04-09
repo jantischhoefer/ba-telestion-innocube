@@ -10,7 +10,7 @@
 			},
 			{
 				"name": "Random Position Publisher",
-				"verticle": "de.wuespace.telestion.example.RandomPositionPublisher",
+				"verticle": "de.wuespace.telestion.examples.RandomPositionPublisher",
 				"magnitude": 1,
 				"config": {}
 			},
